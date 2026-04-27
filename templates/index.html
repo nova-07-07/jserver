@@ -1,0 +1,61 @@
+<html>
+<head>
+<style>
+body {background:#2C2C2C;color:#F3F4F4;font-family:Arial;}
+.card {background:#221818;border:1px solid #612D53;padding:12px;margin:12px;border-radius:10px;}
+table {width:100%;border-collapse:collapse;}
+th,td {border:1px solid #444;padding:6px;}
+th {background:#612D53;}
+button {background:#853953;color:white;padding:8px;border:none;border-radius:6px;}
+input {padding:6px;background:#444;color:white;border:none;border-radius:5px;}
+</style>
+</head>
+
+<body>
+
+<h2>Main Page</h2>
+
+<form method="post" action="/create_filling">
+<input name="filling_name" value="nova">
+<input name="date" type="date" placeholder="optional date">
+<button>Create</button>
+</form>
+
+{% for date, fillings in data.items() %}
+<h3>{{date}}</h3>
+
+{% for fname, counts in fillings.items() %}
+
+    {% for count, rows in counts.items() %}
+
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;margin:6px;">
+            <b>{{fname}} (filling {{count}})</b>
+            <a href="/edit/{{date|replace('/','-')}}/{{fname}}/{{count}}">Edit</a>
+        </div>
+
+        <table>
+        <tr><th>Name</th><th>Load</th><th>Empty</th><th>Amount</th><th>Time</th></tr>
+
+        {% for r in rows %}
+        {% if r.name or r.load or r.empty or r.amount %}
+        <tr>
+            <td style="width: 35%;">{{r.name}}</td>
+            <td>{{r.load}}</td>
+            <td>{{r.empty}}</td>
+            <td>{{r.amount}}</td>
+            <td style="width : 20%;">{{r.time}}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+
+        </table>
+    </div>
+
+    {% endfor %}
+
+{% endfor %}
+{% endfor %}
+
+</body>
+</html>

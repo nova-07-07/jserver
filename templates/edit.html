@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<style>
+body {background:#2C2C2C;color:#F3F4F4;font-family:Arial;}
+table {width:100%;border-collapse:collapse;}
+th,td {border:1px solid #444;padding:6px;}
+th {background:#612D53;}
+
+input{
+    width:100%;
+    padding:6px;
+    background:#333;
+    color:white;
+    border:none;
+    outline:none;
+}
+</style>
+
+<script>
+
+// ================= TIME =================
+function nowTime(){
+    return new Date().toLocaleTimeString();
+}
+
+// ================= NAME FILTER =================
+function onNameInput(el){
+    let list = document.getElementById("names").options;
+    let matches = [];
+
+    for(let o of list){
+        if(o.value.toLowerCase().startsWith(el.value.toLowerCase())){
+            matches.push(o.value);
+        }
+    }
+
+    if(matches.length === 1){
+        el.value = matches[0];
+
+        let row = el.closest("tr");
+        row.querySelector(".time").value = nowTime();
+
+        setTimeout(()=>{
+            row.querySelector(".load").focus();
+        },10);
+    }
+}
+
+// ================= ENTER KEY =================
+function onKey(el,e){
+    if(e.key === "Enter"){
+        e.preventDefault();
+
+        let row = el.closest("tr");
+        let load = row.querySelector(".load");
+        let empty = row.querySelector(".empty");
+
+        if(el.classList.contains("load")){
+            empty.value = load.value;
+        }
+
+        moveNextRow(row);
+        checkLastRow();
+    }
+}
+
+// ================= MOVE NEXT =================
+function moveNextRow(row){
+    let next = row.nextElementSibling;
+    if(next){
+        next.querySelector(".name").focus();
+    }
+}
+
+// ================= ADD ROW =================
+function appendNewRow(newId){
+    let tbody = document.querySelector("tbody");
+
+    let tr = document.createElement("tr");
+    tr.dataset.id = newId;
+
+    tr.innerHTML = `
+        <td><input class="name" name="name" list="names" oninput="onNameInput(this)"></td>
+        <td><input class="load" name="load" type="number" onkeydown="onKey(this,event)"></td>
+        <td><input class="empty" name="empty" type="number" onkeydown="onKey(this,event)"></td>
+        <td><input name="amount" type="number" onkeydown="onKey(this,event)"></td>
+        <td><input class="time" name="time" readonly value=""></td>
+        <td><button onclick="deleteRow(this)" style="background:red;color:white;border:none;padding:5px;">X</button></td>
+    `;
+
+    tbody.appendChild(tr);
+    tr.querySelector(".name").focus();
+}
+
+// ================= CHECK LAST ROW =================
+function checkLastRow(){
+    let rows = document.querySelectorAll("tbody tr");
+    let last = rows[rows.length-1];
+
+    let hasValue = false;
+
+    last.querySelectorAll("input").forEach(i=>{
+        if(i.value.trim() !== "") hasValue = true;
+    });
+
+    if(hasValue){
+        fetch("/add_row",{
+            method:"POST",
+            headers:{"Content-Type":"application/x-www-form-urlencoded"},
+            body:new URLSearchParams({
+                date:"{{date}}",
+                fname:"{{fname}}",
+                count:"{{count}}"
+            })
+        })
+        .then(res=>res.text())
+        .then(id=>{
+            appendNewRow(id);
+        });
+    }
+}
+
+// ================= LIMIT EMPTY ROWS =================
+function cleanEmptyRows(){
+    let rows = document.querySelectorAll("tbody tr");
+    let emptyRows = [];
+
+    rows.forEach(r=>{
+        let empty = true;
+
+        r.querySelectorAll("input").forEach(i=>{
+            if(i.value.trim() !== "") empty = false;
+        });
+
+        if(empty) emptyRows.push(r);
+    });
+
+    // keep only 2 empty rows
+    while(emptyRows.length > 2){
+        emptyRows[0].remove();
+        emptyRows.shift();
+    }
+}
+
+// ================= AUTOSAVE =================
+function autoSaveAll(){
+    document.querySelectorAll("tbody tr").forEach(tr=>{
+
+        let id = tr.dataset.id;
+        if(!id) return;
+
+        let inputs = tr.querySelectorAll("input");
+
+        let data = new FormData();
+
+        let hasValue = false;
+
+        inputs.forEach(i=>{
+            data.append(i.name, i.value);
+            if(i.value.trim() !== "") hasValue = true;
+        });
+
+        if(!hasValue) return;
+
+        fetch("/update/" + id,{
+            method:"POST",
+            body:data
+        });
+
+    });
+}
+
+// ================= INIT =================
+window.onload = ()=>{
+    cleanEmptyRows();
+    setInitialFocus();
+};
+
+// autosave loop
+setInterval(autoSaveAll, 5000);
+
+// ================= SMART FOCUS =================
+function setInitialFocus(){
+    let rows = document.querySelectorAll("tbody tr");
+    if(rows.length === 0) return;
+
+    let last = rows[rows.length - 1];
+    let prev = rows[rows.length - 2];
+
+    // check if last row is empty
+    let lastEmpty = true;
+    last.querySelectorAll("input").forEach(i=>{
+        if(i.value.trim() !== "") lastEmpty = false;
+    });
+
+    if(lastEmpty && prev){
+        let name = prev.querySelector(".name");
+        let load = prev.querySelector(".load");
+
+        // if name filled but load empty → focus load
+        if(name.value.trim() !== "" && load.value.trim() === ""){
+            load.focus();
+            return;
+        }
+
+        // if name empty → focus name
+        if(name.value.trim() === ""){
+            name.focus();
+            return;
+        }
+    }
+
+    // default → focus last row name
+    last.querySelector(".name").focus();
+}
+
+function deleteThisTable(){
+    // get pass code 9042369236 == "delete"
+    let pass = prompt("Enter pass code to delete this filling:");
+    if(pass === "9042369236"){
+        fetch("/delete_filling",{
+            method:"POST",
+            headers:{"Content-Type":"application/x-www-form-urlencoded"},
+            body:new URLSearchParams({
+                date:"{{date}}",
+                fname:"{{fname}}",
+                count:"{{count}}"
+            })
+        })
+        .then(res=>{
+            if(res.ok){
+                window.location = "/";
+            }else{
+                alert("Failed to delete filling.");
+            }
+        });
+    }else{
+        alert("Incorrect pass code.");
+    }
+}
+
+function deleteRow(btn){
+    let pass = prompt("Enter pass code:");
+
+    if(pass !== "9042369236"){
+        alert("Wrong code");
+        return;
+    }
+
+    let tr = btn.closest("tr");
+    let id = tr.dataset.id;
+
+    fetch("/delete_row",{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},
+        body:new URLSearchParams({ id:id })
+    })
+    .then(res=>{
+        if(res.ok){
+            tr.remove(); // remove row from UI
+        }else{
+            alert("Delete failed");
+        }
+    });
+}
+
+</script>
+
+</head>
+
+<body>
+<button onclick="window.location='/'" style="color: #ffffff; background-color: #2C2C2C; border: double brown; padding: 10px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 8px;" >Back</button>
+<h3>{{fname}} (filling {{count}})</h3>
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Load</th>
+<th>Empty</th>
+<th>Amount</th>
+<th>Time</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for r in rows %}
+<tr data-id="{{r._id}}">
+
+<td>
+<input class="name" name="name" list="names"
+value="{{r.name}}" oninput="onNameInput(this)">
+</td>
+
+<td>
+<input class="load" name="load" type="number"
+value="{{r.load}}" onkeydown="onKey(this,event)">
+</td>
+
+<td>
+<input class="empty" name="empty" type="number"
+value="{{r.empty}}" onkeydown="onKey(this,event)">
+</td>
+
+<td>
+<input name="amount" type="number"
+value="{{r.amount}}" onkeydown="onKey(this,event)">
+</td>
+
+<td>
+<input class="time" name="time" readonly value="{{r.time}}">
+</td>
+
+<td>
+<button onclick="deleteRow(this)" style="background:red;color:white;border:none;padding:5px;">
+X
+</button>
+</td>
+
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<datalist id="names">
+{% for n in names %}
+<option value="{{n}}">
+{% endfor %}
+</datalist>
+
+<br>
+<div style="display: flex;width: 100%;justify-content: end;">    
+<button onclick="deleteThisTable()" style="border: cornsilk;background-color: red;color: #ffffff;padding: 10px;border-radius: 5px;"> Delete</button>
+</div>
+
+</body>
+</html>
