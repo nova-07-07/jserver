@@ -1,3 +1,5 @@
-flask 
-pymongo 
+flask
+pymongo
 requests
+gunicorn
+libsql-client
