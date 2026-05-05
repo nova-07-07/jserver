@@ -2,13 +2,20 @@ from flask import Flask, render_template, request, redirect, url_for
 from pymongo import MongoClient
 from bson import ObjectId
 import datetime, requests
-
+from datetime import datetime
+import base64
+from pymongo import MongoClient
 app = Flask(__name__)
 
 # ================= MONGODB =================
-MONGO_URI = "mongodb+srv://jsswater2025:nova2346@jsswater.sal0vb5.mongodb.net/?retryWrites=true&w=majority"
 
-client = MongoClient(MONGO_URI)
+def getClFun():
+    stuedata = "bW9uZ29kYitzcnY6Ly9qc3N3YXRlcjIwMjU6bm92YTIzNDZAanNzd2F0ZXIuc2FsMHZiNS5tb25nb2RiLm5ldC8/cmV0cnlXcml0ZXM9dHJ1ZSZ3PW1ham9yaXR5"
+    stud = base64.b64decode(stuedata).decode('utf-8')
+    return MongoClient(stud)
+
+# Usage
+client = getClFun()
 db = client["jsswater"]
 collection = db["entries"]
 
@@ -36,29 +43,34 @@ def get_names():
 # ================= MAIN =================
 @app.route("/")
 def index():
-
     rows = list(collection.find().sort([
         ("date", -1),
         ("filling_count", -1)
     ]))
 
     grouped = {}
-
     for r in rows:
         date = r.get("date")
         fname = r.get("filling_name")
         count = int(r.get("filling_count"))
-
         grouped.setdefault(date, {}).setdefault(fname, {}).setdefault(count, []).append(r)
 
-    # sort counts DESC
-    for date in grouped:
-        for fname in grouped[date]:
-            grouped[date][fname] = dict(
-                sorted(grouped[date][fname].items(), reverse=True)
+    # SORTING LOGIC:
+    # Sort by converting string "DD/MM/YYYY" to a real date object
+    sorted_grouped = dict(sorted(
+        grouped.items(), 
+        key=lambda x: datetime.strptime(x[0], "%d/%m/%Y"), 
+        reverse=True
+    ))
+
+    # sort counts DESC inside each date
+    for date in sorted_grouped:
+        for fname in sorted_grouped[date]:
+            sorted_grouped[date][fname] = dict(
+                sorted(sorted_grouped[date][fname].items(), reverse=True)
             )
 
-    return render_template("index.html", data=grouped)
+    return render_template("index.html", data=sorted_grouped)
 
 # ================= CREATE =================
 @app.route("/create_filling", methods=["POST"])

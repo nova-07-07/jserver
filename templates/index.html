@@ -21,40 +21,35 @@ input {padding:6px;background:#444;color:white;border:none;border-radius:5px;}
 <button>Create</button>
 </form>
 
+<!-- This sorts the main dates so the newest (e.g., 05/05/2026) appears at the top -->
 {% for date, fillings in data.items() %}
-<h3>{{date}}</h3>
+    <h3>{{date}}</h3>
 
-{% for fname, counts in fillings.items() %}
+    {% for fname, counts in fillings.items() %}
+        {% for count, rows in counts.items() %}
+        <div class="card">
+            <div style="display:flex;justify-content:space-between;margin:6px;">
+                <b>{{fname}} (filling {{count}})</b>
+                <a href="/edit/{{date|replace('/','-')}}/{{fname}}/{{count}}">Edit</a>
+            </div>
 
-    {% for count, rows in counts.items() %}
-
-    <div class="card">
-        <div style="display:flex;justify-content:space-between;margin:6px;">
-            <b>{{fname}} (filling {{count}})</b>
-            <a href="/edit/{{date|replace('/','-')}}/{{fname}}/{{count}}">Edit</a>
+            <table>
+                <tr><th>Name</th><th>Load</th><th>Empty</th><th>Amount</th><th>Time</th></tr>
+                {% for r in rows %}
+                {% if r.name or r.load or r.empty or r.amount %}
+                <tr>
+                    <td style="width: 35%;">{{r.name}}</td>
+                    <td>{{r.load}}</td>
+                    <td>{{r.empty}}</td>
+                    <td>{{r.amount}}</td>
+                    <td style="width : 20%;">{{r.time}}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </table>
         </div>
-
-        <table>
-        <tr><th>Name</th><th>Load</th><th>Empty</th><th>Amount</th><th>Time</th></tr>
-
-        {% for r in rows %}
-        {% if r.name or r.load or r.empty or r.amount %}
-        <tr>
-            <td style="width: 35%;">{{r.name}}</td>
-            <td>{{r.load}}</td>
-            <td>{{r.empty}}</td>
-            <td>{{r.amount}}</td>
-            <td style="width : 20%;">{{r.time}}</td>
-        </tr>
-        {% endif %}
         {% endfor %}
-
-        </table>
-    </div>
-
     {% endfor %}
-
-{% endfor %}
 {% endfor %}
 
 </body>
