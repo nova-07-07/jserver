@@ -29,14 +29,18 @@ function nowTime(){
 function onNameInput(el){
     let list = document.getElementById("names").options;
     let matches = [];
-
+    // set first chracters changed to uppercase
+    setTimeout(()=>{
+        el.value = el.value.charAt(0).toUpperCase() + el.value.slice(1);
+    },100);
+        
     for(let o of list){
         if(o.value.toLowerCase().startsWith(el.value.toLowerCase())){
             matches.push(o.value);
         }
     }
 
-    if(matches.length === 1){
+    if(matches.length === 1 && autoFillEnabled){
         el.value = matches[0];
 
         let row = el.closest("tr");
@@ -265,6 +269,11 @@ function deleteRow(btn){
         }
     });
 }
+let autoFillEnabled = true;
+function desableAutoFill(){
+    autoFillEnabled = !autoFillEnabled;
+    document.getElementById('autofill').innerHTML = autoFillEnabled ? "desable auto fill" : "enable auto fill";
+}
 
 </script>
 
@@ -272,6 +281,7 @@ function deleteRow(btn){
 
 <body>
 <button onclick="window.location='/'" style="color: #ffffff; background-color: #2C2C2C; border: double brown; padding: 10px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 8px;" >Back</button>
+<button onclick="desableAutoFill()" style="color: #ffffff; background-color: #2C2C2C; border: double brown; padding: 10px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 4px 2px; cursor: pointer; border-radius: 8px;"  id="autofill">desable auto fill</button>
 <h3>{{fname}} (filling {{count}})</h3>
 
 <table>
@@ -293,7 +303,7 @@ function deleteRow(btn){
 <tr data-id="{{r._id}}">
 
 <td>
-<input class="name" name="name" list="names"
+<input class="name" name="name" list="names" id="name_input"
 value="{{r.name}}" oninput="onNameInput(this)">
 </td>
 

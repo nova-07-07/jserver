@@ -33,20 +33,48 @@ input {padding:6px;background:#444;color:white;border:none;border-radius:5px;}
                 <a href="/edit/{{date|replace('/','-')}}/{{fname}}/{{count}}">Edit</a>
             </div>
 
-            <table>
-                <tr><th>Name</th><th>Load</th><th>Empty</th><th>Amount</th><th>Time</th></tr>
-                {% for r in rows %}
-                {% if r.name or r.load or r.empty or r.amount %}
-                <tr>
-                    <td style="width: 35%;">{{r.name}}</td>
-                    <td>{{r.load}}</td>
-                    <td>{{r.empty}}</td>
-                    <td>{{r.amount}}</td>
-                    <td style="width : 20%;">{{r.time}}</td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-            </table>
+                {% set total_rows = namespace(value=0) %}
+                {% set total_load = namespace(value=0) %}
+                {% set total_empty = namespace(value=0) %}
+                {% set total_amount = namespace(value=0) %}
+
+                <table>
+                    <tr>
+                        <th>Name</th>
+                        <th>Load</th>
+                        <th>Empty</th>
+                        <th>Amount</th>
+                        <th>Time</th>
+                    </tr>
+
+                    {% for r in rows %}
+                    {% if r.name or r.load or r.empty or r.amount %}
+
+                    {% set total_rows.value = total_rows.value + 1 %}
+                    {% set total_load.value = total_load.value + (r.load|int if r.load else 0) %}
+                    {% set total_empty.value = total_empty.value + (r.empty|int if r.empty else 0) %}
+                    {% set total_amount.value = total_amount.value + (r.amount|int if r.amount else 0) %}
+
+                    <tr>
+                        <td style="width:35%;">{{r.name}}</td>
+                        <td>{{r.load}}</td>
+                        <td>{{r.empty}}</td>
+                        <td>{{r.amount}}</td>
+                        <td style="width:20%;">{{r.time}}</td>
+                    </tr>
+
+                    {% endif %}
+                    {% endfor %}
+
+                    <!-- TOTAL ROW -->
+                    <tr style="background:#423b49;font-weight:bold;">
+                        <td>Total customer: {{total_rows.value}}</td>
+                        <td>{{total_load.value}}</td>
+                        <td>{{total_empty.value}}</td>
+                        <td>{{total_amount.value}}</td>
+                        <td>-</td>
+                    </tr>
+                </table>
         </div>
         {% endfor %}
     {% endfor %}

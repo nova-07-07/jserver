@@ -81,9 +81,9 @@ def create_filling():
 
     # normalize date
     if raw_date:
-        date = datetime.datetime.strptime(raw_date, "%Y-%m-%d").strftime("%d/%m/%Y")
+        date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%d/%m/%Y")
     else:
-        date = datetime.datetime.now().strftime("%d/%m/%Y")
+        date = datetime.now().strftime("%d/%m/%Y")
 
     # count per date
     last = collection.find_one(
@@ -93,7 +93,7 @@ def create_filling():
 
     count = last["filling_count"] + 1 if last else 1
 
-    now = datetime.datetime.now().strftime("%d/%m/%Y %I:%M %p")
+    now = datetime.now().strftime("%d/%m/%Y %I:%M %p")
 
     collection.insert_one({
         "date": date,
@@ -223,4 +223,4 @@ import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
